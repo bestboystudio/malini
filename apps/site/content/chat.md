@@ -45,6 +45,17 @@ A command that an earlier turn reported and left running never keeps a later tur
 When the agent goes on once one of them ends, the end of that turn counts as a turn too: it reports, ships its commit, and hands the chat what waited for it.
 Whatever closes that run later, stopping it, quitting, a crash, merging main into the workstream or archiving it, leaves it done, and Malini does not resume it on the next start.
 
+## Your draft keeps the cursor
+
+What you type lands in the composer.
+A run starting or ending, a chat loading, a question, a secret request or a file the agent opens never takes the cursor from a draft.
+
+- A question or an automation's request that arrives while the draft has text waits in a row under it, **1 question needs you**, until you press **Answer**.
+- A file the agent opens while you type opens as a tab beside the chat, not in front of it.
+- **↵** pressed while a chat still loads sends once it is ready.
+- When a document, a menu or a dialog you opened closes, the cursor is back in the composer.
+- **↵**, **⌫** and the arrows edit the draft after a click elsewhere; a control you reached with **Tab** keeps them.
+
 ## Limits and outages
 
 Claude Code already tries again up to 10 times when Claude's API is overloaded, fails, limits requests or can't be reached.

@@ -13,7 +13,7 @@
 	import { secretSaveQuery } from '$lib/secrets/application/queries/secret-save.query.svelte';
 	import { pastedSecrets } from '$lib/secrets/domain/secret-paste';
 	import { sanitizeFailureDetail } from '$shared/errors/failure-copy';
-	import { focusIsUnclaimed, overlayIsOpen } from '$shared/shell/unclaimed-focus';
+	import { claimFocus, focusIsUnclaimed, overlayIsOpen } from '$shared/shell/unclaimed-focus';
 
 	interface Props {
 		request: SecretRequest;
@@ -46,19 +46,11 @@
 	}
 
 	onMount(() => {
-		if (mayTakeFocus()) section?.querySelector('input')?.focus({ preventScroll: true });
+		claimFocus(section?.querySelector('input'), { preventScroll: true }, mayTakeFocus);
 	});
 
 	function mayTakeFocus(): boolean {
-		if (overlayIsOpen()) return false;
-		const active = document.activeElement;
-		if (focusIsUnclaimed() || !(active instanceof HTMLElement)) return true;
-		if (active.closest('[role="dialog"]')) return false;
-		const typed =
-			active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
-				? active.value
-				: active.textContent;
-		return (typed ?? '').trim().length === 0;
+		return !overlayIsOpen() && focusIsUnclaimed();
 	}
 
 	function onWindowPaste(event: ClipboardEvent): void {

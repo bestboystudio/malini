@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import { onMount } from 'svelte';
 	import type { AutomationDefinitionRecord } from '$contract/automations';
 	import { Button } from '$hyper-ui/components/button';
@@ -81,7 +82,7 @@
 	});
 
 	$effect(() => {
-		searchEl?.focus();
+		focusFromUser(searchEl);
 	});
 
 	$effect(() => {

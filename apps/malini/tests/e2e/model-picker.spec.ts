@@ -12,6 +12,7 @@ import {
 	seedWorkstream,
 	sendPrompt,
 	startFreshChat,
+	tabTo,
 	temporaryRoot,
 	waitWhile,
 } from './harness';
@@ -38,7 +39,7 @@ test('the model picker is one button that opens and closes its list from the key
 		await expect(picker).toHaveAccessibleName('Model: Opus 5.5');
 		const models = page.getByRole('listbox', { name: 'Models' });
 
-		await picker.focus();
+		await tabTo(page, picker);
 		await page.keyboard.press('Enter');
 		await expect(models).toBeVisible();
 		await expect(picker).toHaveAttribute('aria-expanded', 'true');
@@ -52,7 +53,7 @@ test('the model picker is one button that opens and closes its list from the key
 		await expect(page.getByTestId('chat-composer-input')).toBeFocused();
 		await expect(picker).toHaveAttribute('aria-expanded', 'false');
 
-		await picker.focus();
+		await tabTo(page, picker);
 		await page.keyboard.press('Space');
 		await expect(models).toBeVisible();
 		await page.keyboard.press('Escape');

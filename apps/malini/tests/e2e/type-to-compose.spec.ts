@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+	clickAway,
 	createSourceRepo,
 	expectAssistantReply,
 	expectCleanConsole,
@@ -7,6 +8,7 @@ import {
 	openWorkstream,
 	seedWorkstream,
 	sendPrompt,
+	tabTo,
 } from './harness';
 
 test('typing or pasting while nothing holds focus writes at the end of the composer draft', async () => {
@@ -25,12 +27,12 @@ test('typing or pasting while nothing holds focus writes at the end of the compo
 		const input = page.locator('[data-testid="chat-composer-input"][aria-disabled="false"]');
 		await expect(input).toBeVisible({ timeout: 20_000 });
 
-		await input.blur();
+		await clickAway(page);
 		await page.keyboard.type('Fix it ', { delay: 10 });
 		await expect(input).toBeFocused();
 		await expect(input).toHaveText('Fix it');
 
-		await input.blur();
+		await clickAway(page);
 		await page.keyboard.press('Space');
 		await expect(input).not.toBeFocused();
 
@@ -40,7 +42,7 @@ test('typing or pasting while nothing holds focus writes at the end of the compo
 		await expect(input).toBeFocused();
 		await expect(input).toHaveText('Fix it @');
 
-		await input.blur();
+		await clickAway(page);
 		await page.evaluate(`(() => {
 			const data = new DataTransfer();
 			data.setData('text/plain', ' dictated words');
@@ -84,11 +86,11 @@ test('Enter, Backspace and arrows edit the draft after a click elsewhere, not af
 
 		await input.click();
 		await page.keyboard.type('Fix it', { delay: 10 });
-		await input.blur();
+		await clickAway(page);
 		await page.keyboard.press('Backspace');
 		await expect(input).toBeFocused();
 		await expect(input).toHaveText('Fix i');
-		await input.blur();
+		await clickAway(page);
 		await page.keyboard.press('ArrowLeft');
 		await page.keyboard.type('X');
 		await expect(input).toHaveText('Fix Xi');
@@ -103,7 +105,7 @@ test('Enter, Backspace and arrows edit the draft after a click elsewhere, not af
 
 		await input.click();
 		await page.keyboard.type('Keep me', { delay: 10 });
-		await tab.focus();
+		await tabTo(page, tab, 'Shift+Tab');
 		await page.keyboard.press('Enter');
 		await expect(input).not.toBeFocused();
 		await expect(input).toHaveText('Keep me');

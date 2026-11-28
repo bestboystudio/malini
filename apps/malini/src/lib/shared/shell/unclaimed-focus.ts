@@ -1,9 +1,4 @@
-export function focusIsUnclaimed(): boolean {
-	const active = document.activeElement;
-	if (!(active instanceof HTMLElement)) return true;
-	if (active.closest('[role="dialog"]')) return false;
-	return !active.matches('input, textarea, select, [contenteditable], [role="textbox"]');
-}
+export { claimFocus, focusFromUser, focusIsUnclaimed } from '$hyper-ui/overlay';
 
 export function overlayIsOpen(): boolean {
 	return (

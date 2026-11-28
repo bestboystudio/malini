@@ -12,6 +12,32 @@ export function getOverlayFocusReturn(): OverlayFocusReturn | undefined {
 	return getContext<OverlayFocusReturn | undefined>(FOCUS_RETURN_KEY);
 }
 
+type Focusable<Options> = Readonly<{ focus(options?: Options): unknown }>;
+
+export function focusIsUnclaimed(): boolean {
+	const active = document.activeElement;
+	if (!(active instanceof HTMLElement)) return true;
+	if (active.closest('[role="dialog"]')) return false;
+	return !active.matches('input, textarea, select, [contenteditable], [role="textbox"]');
+}
+
+export function claimFocus<Options = FocusOptions>(
+	target: Focusable<Options> | null | undefined,
+	options?: Options,
+	unclaimed: () => boolean = focusIsUnclaimed,
+): boolean {
+	if (!target || !document.hasFocus() || !unclaimed()) return false;
+	target.focus(options);
+	return true;
+}
+
+export function focusFromUser<Options = FocusOptions>(
+	target: Focusable<Options> | null | undefined,
+	options?: Options,
+): void {
+	target?.focus(options);
+}
+
 let returningFocus = false;
 
 export function returnFocus(target: HTMLElement | null | undefined): void {

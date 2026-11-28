@@ -16,7 +16,7 @@ const CONTAINED_SCROLL = Buffer.from(
 	"<script>{const scroll=Element.prototype.scrollIntoView;Element.prototype.scrollIntoView=function(options){const contained={...(typeof options==='object'&&options!==null?options:{block:options===false?'end':'start'}),container:'nearest'};if(innerHeight>0)return scroll.call(this,contained);const sized=()=>{if(innerHeight===0)return;removeEventListener('resize',sized);scroll.call(this,contained)};addEventListener('resize',sized)}}</script>",
 );
 const FOCUS_STAYS_WHERE_THE_USER_PUT_IT = Buffer.from(
-	"<script>for(const[owner,name]of[[HTMLElement.prototype,'focus'],[SVGElement.prototype,'focus'],[HTMLInputElement.prototype,'select'],[HTMLTextAreaElement.prototype,'select'],[window,'focus']]){const call=owner[name];owner[name]=function(...args){if(document.hasFocus())return call.apply(this,args)}}</script>",
+	"<script>for(const[owner,name]of[[HTMLElement.prototype,'focus'],[SVGElement.prototype,'focus'],[HTMLInputElement.prototype,'select'],[HTMLTextAreaElement.prototype,'select'],[window,'focus']]){const call=owner[name];owner[name]=function(...args){if(document.hasFocus())return call.apply(this,args)}}for(const[owner,name]of[[HTMLDialogElement.prototype,'show'],[HTMLDialogElement.prototype,'showModal'],[HTMLElement.prototype,'showPopover'],[HTMLElement.prototype,'togglePopover']]){const call=owner[name];owner[name]=function(...args){if(document.hasFocus()||this.inert)return call.apply(this,args);this.inert=true;try{return call.apply(this,args)}finally{this.inert=false}}}</script>",
 );
 const KEPT_IN_FRAME = Buffer.concat([CONTAINED_SCROLL, FOCUS_STAYS_WHERE_THE_USER_PUT_IT]);
 

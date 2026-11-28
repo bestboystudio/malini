@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import { onDestroy, tick } from 'svelte';
 	import { beginPromptEditCommand } from '$lib/chat/application/commands/begin-prompt-edit.command';
 	import { endPromptEditCommand } from '$lib/chat/application/commands/end-prompt-edit.command';
@@ -61,7 +62,7 @@
 		editingWorkstreamId = workstreamId;
 		onpausechange(workstreamId, true);
 		await tick();
-		editField?.focus();
+		focusFromUser(editField);
 	}
 
 	function finishEdit(save: boolean): void {

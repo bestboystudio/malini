@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import { SensitiveText } from '$hyper-ui/components/sensitive';
 	import { tick } from 'svelte';
 	import { Button } from '$hyper-ui/components/button';
@@ -28,7 +29,7 @@
 
 	async function focusFilter(): Promise<void> {
 		await tick();
-		filterInput?.focus();
+		focusFromUser(filterInput);
 	}
 
 	function fuzzyMatch(value: string, search: string): boolean {

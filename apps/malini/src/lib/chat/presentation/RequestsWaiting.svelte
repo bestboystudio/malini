@@ -1,27 +1,51 @@
 <script lang="ts">
 	import { Button } from '$hyper-ui/components/button';
-	import { Icon } from '$hyper-ui/icons';
+	import { Icon, type IconName } from '$hyper-ui/icons';
 
 	interface Props {
 		count: number;
-		unchecked?: boolean;
+		kind?: 'requests' | 'unchecked' | 'questions';
 		onanswer: () => void;
 	}
 
-	let { count, unchecked = false, onanswer }: Props = $props();
+	let { count, kind = 'requests', onanswer }: Props = $props();
 
+	const COPY = {
+		requests: {
+			one: 'request needs',
+			many: 'requests need',
+			source: 'from work this chat started',
+			icon: 'dot',
+			testId: 'requests-waiting',
+		},
+		unchecked: {
+			one: 'call',
+			many: 'calls',
+			source: "auto mode's safety check is down (Anthropic)",
+			icon: 'shield-alert',
+			testId: 'unchecked-calls-waiting',
+		},
+		questions: {
+			one: 'question needs',
+			many: 'questions need',
+			source: 'held while you typed',
+			icon: 'question',
+			testId: 'questions-waiting',
+		},
+	} as const satisfies Record<
+		string,
+		Readonly<{ one: string; many: string; source: string; icon: IconName; testId: string }>
+	>;
+
+	const copy = $derived(COPY[kind]);
 	const requests = $derived(
-		unchecked
-			? `${count} ${count === 1 ? 'call' : 'calls'} waiting`
-			: `${count} ${count === 1 ? 'request needs' : 'requests need'} you`,
+		kind === 'unchecked'
+			? `${count} ${count === 1 ? copy.one : copy.many} waiting`
+			: `${count} ${count === 1 ? copy.one : copy.many} you`,
 	);
-	const source = $derived(
-		unchecked ? "auto mode's safety check is down (Anthropic)" : 'from work this chat started',
-	);
-	const testId = $derived(unchecked ? 'unchecked-calls-waiting' : 'requests-waiting');
 </script>
 
-<div class="p-1" data-testid={testId}>
+<div class="p-1" data-testid={copy.testId}>
 	<Button
 		bare
 		ariaLabel={`Answer: ${requests}`}
@@ -29,11 +53,11 @@
 		onclick={onanswer}
 	>
 		<span class="text-brand-icon grid size-4 shrink-0 place-items-center" aria-hidden="true">
-			<Icon name={unchecked ? 'shield-alert' : 'dot'} size={13} />
+			<Icon name={copy.icon} size={13} />
 		</span>
 		<span class="min-w-0 flex-1 truncate">
 			<span class="text-fg-default font-medium">{requests}</span>
-			<span class="text-fg-tertiary">· {source}</span>
+			<span class="text-fg-tertiary">· {copy.source}</span>
 		</span>
 		<span class="text-fg-secondary shrink-0">Answer</span>
 	</Button>

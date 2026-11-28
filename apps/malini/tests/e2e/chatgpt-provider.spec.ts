@@ -10,6 +10,7 @@ import {
 	launchMalini,
 	openWorkstream,
 	openedUrls,
+	openSettingsSection,
 	recordBrowser,
 	seedWorkstream,
 	sendPrompt,
@@ -170,10 +171,7 @@ test('a GPT model runs on a ChatGPT plan that offers it after one sign-in, throu
 		await page.mouse.move(0, 0);
 		await expect(account).toHaveCount(0);
 
-		await page.evaluate(() => {
-			location.hash = '#/settings/providers';
-		});
-		await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible({ timeout: 20_000 });
+		await expect(await openSettingsSection(page, 'Providers')).toBeVisible();
 		const card = page.getByTestId('provider-chatgpt');
 		await expect(card).toHaveAttribute('data-signed-in', 'true');
 		await expect(card).toContainText(`Using ChatGPT plan · ${CHATGPT_EMAIL}`);

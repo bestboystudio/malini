@@ -105,6 +105,11 @@ interface Frames {
 }
 
 const pageFrames = new WeakMap<PageContents, Frames>();
+const agentInput = new WeakSet<PageContents>();
+
+export function agentIsPressing(contents: PageContents): boolean {
+	return agentInput.has(contents);
+}
 
 export async function openUrl(contents: PageContents, url: string): Promise<void> {
 	const serverDeadline = Date.now() + OPEN_TIMEOUT_MS;
@@ -992,9 +997,15 @@ async function devtools(
 		await target.sendCommand('Emulation.setFocusEmulationEnabled', { enabled: true });
 		await target.sendCommand('Target.setAutoAttach', AUTO_ATTACH);
 	}
-	const answer = await within(target.sendCommand(method, params, session), ms);
-	if (answer === undefined) throw new BrowserError('page-unresponsive', noAnswer(ms));
-	return answer;
+	const input = method.startsWith('Input.');
+	if (input) agentInput.add(contents);
+	try {
+		const answer = await within(target.sendCommand(method, params, session), ms);
+		if (answer === undefined) throw new BrowserError('page-unresponsive', noAnswer(ms));
+		return answer;
+	} finally {
+		if (input) agentInput.delete(contents);
+	}
 }
 
 async function pressAt(contents: PageContents, point: Point): Promise<void> {

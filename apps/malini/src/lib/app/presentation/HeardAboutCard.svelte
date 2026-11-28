@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import { tick } from 'svelte';
 	import { Button } from '$hyper-ui/components/button';
 	import { IconButton } from '$hyper-ui/components/icon-button';
@@ -50,7 +51,7 @@
 		}
 		chooseHeardAboutCommand({ channel, detail });
 		await tick();
-		detailField?.focus();
+		focusFromUser(detailField);
 	}
 
 	function send(event: SubmitEvent): void {

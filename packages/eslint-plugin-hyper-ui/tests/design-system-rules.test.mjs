@@ -15,6 +15,7 @@ import { noDirectComponentFileImport } from '../src/no-direct-component-file-imp
 import { noBackgroundTransition } from '../src/no-background-transition.mjs';
 import { noMotionWhileHidden } from '../src/no-motion-while-hidden.mjs';
 import { noStaticHoverToken } from '../src/no-static-hover-token.mjs';
+import { noUnpromptedFocus } from '../src/no-unprompted-focus.mjs';
 
 RuleTester.describe = (_text, fn) => fn();
 RuleTester.it = (_text, fn) => fn();
@@ -910,6 +911,75 @@ typescriptTester.run('no-motion-while-hidden in TypeScript', noMotionWhileHidden
 				{ ...motionWhileHidden('menuMotion'), line: 2 },
 				{ ...motionWhileHidden('menuOpen'), line: 5 },
 			],
+		},
+	],
+});
+
+const unpromptedFocus = { messageId: 'unpromptedFocus' };
+
+svelteTester.run('no-unprompted-focus', noUnpromptedFocus, {
+	valid: [
+		{ code: '<script>function pick() { field.focus(); }</script>' },
+		{ code: '<script>async function onSubmit() { await save(); field.focus(); }</script>' },
+		{ code: '<script>const onOpen = async () => { await tick(); field?.focus(); };</script>' },
+		{ code: '<button onclick={async () => { await tick(); field.focus(); }}></button>' },
+		{ code: '<button onclick={() => field.focus()}></button>' },
+		{ code: '<script>$effect(() => { claimFocus(field); });</script>' },
+		{ code: '<script>onMount(() => { focusFromUser(field); });</script>' },
+		{ code: "<script>$effect(() => { log('.focus('); });</script>" },
+		{ code: '<script>$effect(() => { size = 1; });\nfield.focus();</script>' },
+	],
+	invalid: [
+		{
+			code: '<script>\n$effect(() => {\n\tif (open) field?.focus();\n});\n</script>',
+			errors: [{ ...unpromptedFocus, line: 3, column: 18 }],
+		},
+		{ code: '<script>$effect.pre(() => field.focus());</script>', errors: [unpromptedFocus] },
+		{ code: '<script>onMount(() => { field.focus(); });</script>', errors: [unpromptedFocus] },
+		{ code: '<script>tick().then(() => field.focus());</script>', errors: [unpromptedFocus] },
+		{ code: '<script>setTimeout(() => field.focus(), 100);</script>', errors: [unpromptedFocus] },
+		{ code: '<script>window.setTimeout(() => field.focus());</script>', errors: [unpromptedFocus] },
+		{ code: '<script>queueMicrotask(() => field.focus());</script>', errors: [unpromptedFocus] },
+		{
+			code: '<script>requestAnimationFrame(() => { field.focus(); });</script>',
+			errors: [unpromptedFocus],
+		},
+		{
+			code: '<script>async function reveal() { await tick(); field.focus(); }</script>',
+			errors: [unpromptedFocus],
+		},
+		{
+			code: '<script>const reveal = async () => { await tick(); field.focus(); };</script>',
+			errors: [unpromptedFocus],
+		},
+		{
+			code: '<script>const reveal = async (): Promise<void> => field.focus();</script>',
+			errors: [unpromptedFocus],
+		},
+		{
+			code: '<script>items.forEach(async (item) => { await item.load(); item.focus(); });</script>',
+			errors: [unpromptedFocus],
+		},
+		{
+			code: '<script>function onOpenChange() { queueMicrotask(() => field?.focus()); }</script>',
+			errors: [unpromptedFocus],
+		},
+	],
+});
+
+typescriptTester.run('no-unprompted-focus in TypeScript', noUnpromptedFocus, {
+	valid: [
+		{ code: 'export function focusFirst(field: HTMLElement): void { field.focus(); }' },
+		{ code: 'const api = { async onSave(field: HTMLElement) { await save(); field.focus(); } };' },
+	],
+	invalid: [
+		{
+			code: 'export async function startEdit(field: HTMLElement): Promise<void> {\n\tawait tick();\n\tfield.focus();\n}',
+			errors: [{ ...unpromptedFocus, line: 3 }],
+		},
+		{
+			code: 'const api = { async reveal(field: HTMLElement) { await tick(); field.focus(); } };',
+			errors: [unpromptedFocus],
 		},
 	],
 });

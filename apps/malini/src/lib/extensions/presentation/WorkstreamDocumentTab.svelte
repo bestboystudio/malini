@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import { tick } from 'svelte';
 	import { WORKSTREAM_PATH_ATTRIBUTE } from '@malini/extension-api';
 	import { BrowserTab } from '$hyper-ui/components/browser-tab';
@@ -31,11 +32,12 @@
 	async function focusDocumentTab(documentId: string | null): Promise<void> {
 		if (!documentId) return;
 		await tick();
-		document
-			.querySelector<HTMLElement>(
+		focusFromUser(
+			document.querySelector<HTMLElement>(
 				`[data-testid="workstream-document-tab"][data-document-id="${CSS.escape(documentId)}"]`,
-			)
-			?.focus({ preventScroll: true });
+			),
+			{ preventScroll: true },
+		);
 	}
 </script>
 

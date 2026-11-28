@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import { onMount, tick } from 'svelte';
 	import { Button } from '$hyper-ui/components/button';
 	import { Dropdown, DropdownItem } from '$hyper-ui/components/dropdown';
@@ -164,7 +165,7 @@
 		clearTimeout(hoverTimer);
 		flyout = { row, anchor };
 		await tick();
-		flyoutContent?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus();
+		focusFromUser(flyoutContent?.querySelector<HTMLElement>('[aria-selected="true"]'));
 	}
 
 	function onRowKeydown(event: KeyboardEvent, row: PickerRow): void {
@@ -209,7 +210,7 @@
 		if (nextOpen) {
 			loadProviderCapabilitiesCommand('stale');
 			refreshModelProvidersCommand();
-			queueMicrotask(() => filterInput?.focus());
+			queueMicrotask(() => focusFromUser(filterInput));
 			void revealSelection();
 		}
 	}

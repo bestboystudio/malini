@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { claimFocus } from '$shared/shell/unclaimed-focus';
 	import type { ExtensionPanelContext, ExtensionPanelRegistration } from '@malini/extension-api';
 	import { tick, untrack, type Snippet } from 'svelte';
 	import { dismissOnOutside } from '$shared/shell/dismiss-on-outside';
@@ -424,11 +425,12 @@
 		await tick();
 		const panelSelector = `[data-inspector-panel-cache][data-panel-id="${CSS.escape(panelId)}"]`;
 		if (document.activeElement?.closest(panelSelector)) return;
-		document
-			.querySelector<HTMLElement>(
+		claimFocus(
+			document.querySelector<HTMLElement>(
 				`[data-testid="${testId}"][data-panel-id="${CSS.escape(panelId)}"]`,
-			)
-			?.focus({ preventScroll: true });
+			),
+			{ preventScroll: true },
+		);
 	}
 
 	function closePanel(panelId: string): void {

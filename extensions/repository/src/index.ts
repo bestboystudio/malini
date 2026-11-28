@@ -245,12 +245,22 @@ function parseOpenFileTarget(input: unknown): RepositoryFileTabTarget {
 	if (typeof input !== 'object' || input === null) {
 		throw new Error('Open file target must be a path or an object');
 	}
-	const { path, line, pinned } = input as { path?: unknown; line?: unknown; pinned?: unknown };
+	const { path, line, pinned, background } = input as {
+		path?: unknown;
+		line?: unknown;
+		pinned?: unknown;
+		background?: unknown;
+	};
 	if (typeof path !== 'string' || path.length === 0) {
 		throw new Error('Open file target must name a path');
 	}
 	const usable = typeof line === 'number' && Number.isInteger(line) && line > 0;
-	return { path, line: usable ? line : null, pinned: pinned === true };
+	return {
+		path,
+		line: usable ? line : null,
+		pinned: pinned === true,
+		...(background === true ? { background: true } : {}),
+	};
 }
 
 function requireContribution(

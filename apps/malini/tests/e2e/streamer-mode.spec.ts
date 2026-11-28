@@ -4,9 +4,11 @@ import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import {
 	captureFlow,
+	clickAway,
 	createSourceRepo,
 	expectCleanConsole,
 	launchMalini,
+	openSettingsSection,
 	openWorkstream,
 	seedWorkstream,
 } from './harness';
@@ -29,36 +31,36 @@ test('streamer mode masks personal data on demand, and by itself while a streami
 			.locator('[aria-current="true"]');
 		const reveal = signedIn.getByRole('button', { name: 'Reveal email address' });
 
-		await openSettings(page, 'privacy');
+		await openSettingsSection(page, 'Privacy');
 		await expect(streamerMode.getByRole('button', { name: 'Auto' })).toHaveAttribute(
 			'aria-pressed',
 			'true',
 		);
 		await streamerMode.getByRole('button', { name: 'Off' }).click();
-		await openSettings(page, 'providers');
+		await openSettingsSection(page, 'Providers');
 		await expect(signedIn).toContainText('e2e@example.com');
 		await expect(reveal).toHaveCount(0);
 
 		streamingApp = launchStandInObs(app.root);
-		await openSettings(page, 'privacy');
+		await openSettingsSection(page, 'Privacy');
 		await streamerMode.getByRole('button', { name: 'Auto' }).click();
 		await expect(page.getByTestId('streamer-mode-detected')).toBeVisible({
 			timeout: DETECTION_TIMEOUT_MS,
 		});
 		await captureFlow(app, 'streamer-mode-auto-detected');
-		await openSettings(page, 'providers');
+		await openSettingsSection(page, 'Providers');
 		await expect(reveal).toBeVisible();
 
-		await openSettings(page, 'privacy');
+		await openSettingsSection(page, 'Privacy');
 		await streamerMode.getByRole('button', { name: 'On' }).click();
-		await openSettings(page, 'providers');
+		await openSettingsSection(page, 'Providers');
 		await page.reload();
 		await expect(reveal).toBeVisible();
 		await reveal.click();
 		await expect(reveal).toHaveCount(0);
 		await expect(signedIn).toContainText('e2e@example.com');
 
-		await openSettings(page, 'privacy');
+		await openSettingsSection(page, 'Privacy');
 		await streamerMode.getByRole('button', { name: 'Off' }).click();
 		await expect(page.getByTestId('streamer-mode-detected')).toHaveCount(0);
 		expectCleanConsole(app);
@@ -75,7 +77,7 @@ test('streamer mode hides the home folder in a typed path until the field is foc
 		const { page } = app;
 		const source = await createSourceRepo(app.root);
 		await seedWorkstream(page, source, 'e2e-streamer-field-ws', 'Streamer field');
-		await openSettings(page, 'privacy');
+		await openSettingsSection(page, 'Privacy');
 		await page
 			.getByRole('group', { name: 'Streamer mode' })
 			.getByRole('button', { name: 'On' })
@@ -113,15 +115,6 @@ test('streamer mode hides the home folder in a typed path until the field is foc
 	}
 });
 
-async function openSettings(page: Page, section: string): Promise<void> {
-	await page.evaluate(
-		(hash) => {
-			location.hash = hash;
-		},
-		`#/settings${section ? `/${section}` : ''}`,
-	);
-}
-
 async function closeSettings(page: Page): Promise<void> {
 	await page.keyboard.press('Escape');
 	await expect(page.getByRole('dialog', { name: 'Settings' })).toBeHidden();
@@ -135,7 +128,7 @@ test('streamer mode masks an email and a home folder with asterisks, in the comp
 		const { page } = app;
 		const source = await createSourceRepo(app.root);
 		const { workstreamId } = await seedWorkstream(page, source, 'e2e-streamer-mask', 'Masked');
-		await openSettings(page, 'privacy');
+		await openSettingsSection(page, 'Privacy');
 		await page
 			.getByRole('group', { name: 'Streamer mode' })
 			.getByRole('button', { name: 'On' })
@@ -148,7 +141,7 @@ test('streamer mode masks an email and a home folder with asterisks, in the comp
 		await expect(page.getByRole('status').filter({ hasText: 'No automation matches' })).toHaveText(
 			'No automation matches “/Users/a***/notes.md”',
 		);
-		await page.getByRole('button', { name: 'View MCP server status' }).focus();
+		await clickAway(page);
 		await expect(composer).toContainText('Mail a***e@*** about /Users/a***/notes.md', {
 			useInnerText: true,
 		});
@@ -159,7 +152,7 @@ test('streamer mode masks an email and a home folder with asterisks, in the comp
 			{ useInnerText: true },
 		);
 
-		await openSettings(page, 'providers');
+		await openSettingsSection(page, 'Providers');
 		const signedIn = page
 			.getByTestId('claude-code-setup')
 			.getByRole('list', { name: 'Claude accounts' })

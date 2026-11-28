@@ -5,6 +5,7 @@
 	import {
 		announceExclusiveOverlayOpen,
 		bodyPortal,
+		focusFromUser,
 		layoutRect,
 		menuClose,
 		menuOpen,
@@ -107,7 +108,7 @@
 			if (!open || !panel) return;
 			measurePosition();
 
-			panel.focus();
+			focusFromUser(panel);
 			resizeObserver = new ResizeObserver(measurePosition);
 			resizeObserver.observe(panel);
 			if (anchor) resizeObserver.observe(anchor);

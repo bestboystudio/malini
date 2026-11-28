@@ -16,6 +16,7 @@ import {
 	sendPrompt,
 	showInspector,
 	startFreshChat,
+	tabTo,
 	untilStill,
 	type LaunchedApp,
 } from './harness';
@@ -147,7 +148,7 @@ test('clicking or pressing Enter on a file mention opens it in a center tab and 
 		await page.mouse.move(0, 0);
 		await captureFlow(app, 'open-file-1-back-to-chat');
 
-		await startChatButton(page).focus();
+		await tabTo(page, startChatButton(page));
 		await page.keyboard.press('Enter');
 		await expect(tabRow(page).getByRole('tab', { name: 'New chat', exact: true })).toHaveAttribute(
 			'aria-selected',
@@ -156,7 +157,7 @@ test('clicking or pressing Enter on a file mention opens it in a center tab and 
 		await expectStrip(page, ['tab /MENTION/', 'tab "alpha.ts"', 'tab "New chat"']);
 
 		await chatTab(page, /MENTION/u).click();
-		await page.getByRole('link', { name: 'Open beta.ts' }).focus();
+		await tabTo(page, page.getByRole('link', { name: 'Open beta.ts' }));
 		await page.keyboard.press('Enter');
 		await expect(fileTab(page, 'beta.ts')).toHaveAttribute('aria-selected', 'true');
 		await expectShowing(page, 'beta.ts');
@@ -309,7 +310,7 @@ test('double-clicking or pressing Enter on a preview tab keeps it, so the next f
 		await expectStrip(page, ['tab /MENTION/', 'tab "beta.ts"', 'tab "alpha.ts"']);
 		await expectShowing(page, 'beta.ts');
 
-		await fileTab(page, 'beta.ts').focus();
+		await tabTo(page, fileTab(page, 'beta.ts'));
 		await page.keyboard.press('Enter');
 		await expect(fileTab(page, 'beta.ts')).toHaveAccessibleDescription('');
 		await openMention(page, 'gamma.ts');
@@ -396,7 +397,7 @@ test('the strip is a tab list of tabs only, walked with the arrow keys, with eac
 
 		const closeBeta = page.getByRole('button', { name: 'Close beta.ts', exact: true });
 		const closeAlpha = page.getByRole('button', { name: 'Close alpha.ts', exact: true });
-		await closeAlpha.focus();
+		await tabTo(page, closeAlpha);
 		await page.keyboard.press('Shift+Tab');
 		await expect(closeBeta).toBeFocused();
 		await page.keyboard.press('Shift+Tab');
@@ -675,7 +676,7 @@ test('a name several files share offers a chooser, and the chosen file opens', a
 		await expect(treeRow(page, 'packages/b/index.ts')).toHaveAttribute('aria-selected', 'true');
 
 		await chatTab(page, /MENTION/u).click();
-		await page.getByRole('link', { name: 'Open index.ts' }).focus();
+		await tabTo(page, page.getByRole('link', { name: 'Open index.ts' }));
 		await page.keyboard.press('Enter');
 		await expect(chooser).toBeVisible();
 		await page.keyboard.press('Escape');

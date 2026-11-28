@@ -1,16 +1,31 @@
+import type { Attachment } from 'svelte/attachments';
 import type { UsageStepValue } from '$contract/system';
 import { usageStepsService } from '$shared/system/usage-steps.service';
+import { focusIsUnclaimed, overlayIsOpen } from './unclaimed-focus';
 
 export type ComposerFocusLoss = UsageStepValue<'composer_focus_lost'>;
 
 const USER_CAUSE_MS = 300;
+const USER_REPLACES_MS = 1_000;
 const WATCHED_ATTRIBUTES = ['inert', 'hidden', 'class', 'style', 'contenteditable', 'tabindex'];
 const EDITOR = '[contenteditable]';
 
+export type ComposerFocusOwner = Readonly<{
+	workstreamId(): string;
+	focus(): boolean;
+	away(): boolean;
+	composing(): boolean;
+}>;
+
 let commandAt = Number.NEGATIVE_INFINITY;
+let guarded: ComposerFocusOwner | null = null;
 
 export function noteUserAction(): void {
 	commandAt = performance.now();
+}
+
+export function userIsComposingIn(workstreamId: string): boolean {
+	return guarded?.workstreamId() === workstreamId && guarded.composing();
 }
 
 type Mutation = Readonly<{ at: number; change: string }>;
@@ -18,13 +33,20 @@ type Mutation = Readonly<{ at: number; change: string }>;
 type Loss = Readonly<{
 	to: Element | null;
 	excusedMove: boolean;
+	userReplaced: boolean;
+	composing: boolean;
 	dropped: ComposerFocusLoss;
 	state: readonly string[];
 	mutation: string | null;
 	frames: string;
 }>;
 
-export function guardComposerFocus(slot: HTMLElement): () => void {
+export function guardComposerFocus(owner: ComposerFocusOwner): Attachment<HTMLElement> {
+	return (slot) => watchComposerFocus(slot, owner);
+}
+
+function watchComposerFocus(slot: HTMLElement, owner: ComposerFocusOwner): () => void {
+	guarded = owner;
 	let pointerAt = Number.NEGATIVE_INFINITY;
 	let pointerTarget: Node | null = null;
 	let pointerTurn = false;
@@ -63,6 +85,8 @@ export function guardComposerFocus(slot: HTMLElement): () => void {
 		const loss: Loss = {
 			to,
 			excusedMove,
+			userReplaced: at - Math.max(pointerAt, commandAt) < USER_REPLACES_MS,
+			composing: owner.composing(),
 			dropped: droppedCause(editor),
 			state: editorState(editor),
 			mutation: lastMutation
@@ -82,6 +106,20 @@ export function guardComposerFocus(slot: HTMLElement): () => void {
 		if (to && loss.excusedMove) return;
 		// ponytail: a pointer inside a frame never reaches this window, so a frame under the pointer counts as clicked; a frame that grabs focus under a resting pointer passes too, until the frame reports its own pointerdown
 		if (to instanceof HTMLIFrameElement && to.matches(':hover')) return;
+		// ponytail: a user press up to a second before counts as asking for what replaced the composer, so an agent's replacement in that second passes too; a per-action intent token is the upgrade
+		if (owner.away() && (!loss.composing || loss.userReplaced)) return;
+		report(loss, to);
+		heal();
+	};
+
+	const heal = (): void => {
+		const editor = slot.querySelector(EDITOR);
+		if (!(editor instanceof HTMLElement) || !document.hasFocus() || overlayIsOpen()) return;
+		if (!focusIsUnclaimed() || editor.closest('[inert]') || !editor.checkVisibility()) return;
+		owner.focus();
+	};
+
+	const report = (loss: Loss, to: Element | null): void => {
 		const cause = to ? movedCause(to) : loss.dropped;
 		const detail = {
 			cause,
@@ -150,6 +188,7 @@ export function guardComposerFocus(slot: HTMLElement): () => void {
 	slot.addEventListener('focusin', onFocusin);
 	slot.addEventListener('focusout', onFocusout);
 	return () => {
+		if (guarded === owner) guarded = null;
 		chain.disconnect();
 		window.removeEventListener('pointerdown', onPointerdown, true);
 		window.removeEventListener('keydown', onKeydown, true);

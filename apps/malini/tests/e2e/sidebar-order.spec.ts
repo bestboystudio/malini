@@ -6,6 +6,7 @@ import {
 	launchMalini,
 	openWorkstream,
 	seedWorkstream,
+	tabTo,
 } from './harness';
 
 function sidebar(page: Page) {
@@ -111,7 +112,7 @@ test('sidebar order and collapsed repositories survive a relaunch', async () => 
 		await expect(workstreamRow(page, 'e2e-order-b1')).toBeHidden();
 		await expect(workstreamRow(page, 'e2e-order-a1')).toBeVisible();
 
-		await workstreamRow(page, 'e2e-order-a1').focus();
+		await tabTo(page, workstreamRow(page, 'e2e-order-a1'), 'Shift+Tab');
 		await page.keyboard.press('Alt+ArrowDown');
 		await expect
 			.poll(() => listedWorkstreams(page))

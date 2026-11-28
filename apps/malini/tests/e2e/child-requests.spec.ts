@@ -156,7 +156,7 @@ test('what a workstream a chat started asks waits in its own chat, and the chat 
 	}
 });
 
-test('requests from several automations a chat ran queue in the composer slot one at a time, over a draft, and Later folds them until a new one comes', async () => {
+test('requests from several automations a chat ran wait beside a draft, queue in the composer slot one at a time once answered, and Later folds them again', async () => {
 	test.setTimeout(180_000);
 	const app = await launchMalini();
 	try {
@@ -197,7 +197,14 @@ test('requests from several automations a chat ran queue in the composer slot on
 		const queue = page.getByTestId('request-queue');
 		const position = queue.getByTestId('request-position');
 		const composer = page.getByTestId('chat-composer');
-		await expect(position).toHaveText('1 of 2', { timeout: 30_000 });
+		const held = page.getByRole('button', { name: 'Answer: 2 requests need you' });
+		await expect(held).toBeVisible({ timeout: 30_000 });
+		await expect(queue).toHaveCount(0);
+		await expect(input).toBeFocused();
+		await page.keyboard.type(' and more', { delay: 5 });
+		await expect(input).toHaveText('half a thought and more');
+		await held.click();
+		await expect(position).toHaveText('1 of 2');
 		await expect(composer).toBeHidden();
 		const first = await queue.getAttribute('aria-label');
 		await queue.getByRole('button', { name: 'Next request' }).click();
@@ -212,16 +219,19 @@ test('requests from several automations a chat ran queue in the composer slot on
 		const waiting = page.getByRole('button', { name: 'Answer: 1 request needs you' });
 		await expect(waiting).toBeVisible();
 		await expect(composer).toBeVisible();
-		await expect(input).toHaveText('half a thought');
+		await expect(input).toBeFocused();
+		await expect(input).toHaveText('half a thought and more');
 
 		await runIn(siteChild);
-		await expect(position).toHaveText('1 of 2', { timeout: 30_000 });
-		await expect(waiting).toHaveCount(0);
+		await expect(held).toBeVisible({ timeout: 30_000 });
+		await expect(input).toBeFocused();
+		await held.click();
+		await expect(position).toHaveText('1 of 2');
 		await queue.getByRole('button', { name: 'Allow once' }).click();
 		await expect(position).toHaveCount(0);
 		await queue.getByRole('button', { name: 'Allow once' }).click();
 		await expect(queue).toHaveCount(0, { timeout: 20_000 });
-		await expect(input).toHaveText('half a thought');
+		await expect(input).toHaveText('half a thought and more');
 		await expect
 			.poll(
 				async () =>

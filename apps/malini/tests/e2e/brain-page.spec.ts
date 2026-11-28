@@ -9,6 +9,7 @@ import {
 	expectCleanConsole,
 	invoke,
 	launchMalini,
+	openSettingsSection,
 	openWorkstream,
 	seedWorkstream,
 } from './harness';
@@ -31,10 +32,7 @@ test('the Brain page renders a note, its wiki link jumps to the log day, and the
 		await openWorkstream(page, seeded.workstreamId);
 		const status = await invoke<BrainStatus>(page, 'brain.set-up', { sync: true });
 		expect(status.location).toBeTruthy();
-		await page.evaluate(() => {
-			location.hash = '#/settings/brain';
-		});
-		const settings = page.getByRole('dialog', { name: 'Settings' });
+		const settings = await openSettingsSection(page, 'Brain');
 		await settings.getByRole('link', { name: 'Open the brain' }).click();
 		await expect(settings).toHaveCount(0);
 		await expect(page).toHaveTitle('Malini · Brain');

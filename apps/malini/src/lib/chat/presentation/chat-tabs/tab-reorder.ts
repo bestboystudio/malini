@@ -1,3 +1,4 @@
+import { focusFromUser } from '$shared/shell/unclaimed-focus';
 import { tick } from 'svelte';
 import type { Attachment } from 'svelte/attachments';
 import { reorderIndex, reorderShift, settledOffset, type ReorderSlot } from '$shared/shell/reorder';
@@ -188,7 +189,7 @@ export function tabReorder(onmove: (move: TabMove) => void): Attachment<HTMLElem
 			if (index === -1 || !key || !targetKey) return;
 			onmove({ key, targetKey, placement });
 			await tick();
-			tab.focus({ preventScroll: true });
+			focusFromUser(tab, { preventScroll: true });
 		}
 
 		strip.addEventListener('pointerdown', arm);
