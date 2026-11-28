@@ -21,7 +21,7 @@
 		signInToChatGptCommand,
 		signInToClaudeCommand,
 	} from '$shared/providers/providers.api';
-	import { focusIsUnclaimed, overlayIsOpen } from '$shared/shell/unclaimed-focus';
+	import { claimFocus, focusIsUnclaimed, overlayIsOpen } from '$shared/shell/unclaimed-focus';
 
 	interface Props {
 		workstreamId: string;
@@ -53,7 +53,7 @@
 
 	$effect(() => {
 		const target = access.kind === 'needs-key' ? keyInput : primary;
-		if (target && focusIsFree()) queueMicrotask(() => target.focus());
+		if (target) queueMicrotask(() => claimFocus(target, undefined, focusIsFree));
 	});
 
 	function focusIsFree(): boolean {

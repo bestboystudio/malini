@@ -23,6 +23,7 @@ import {
 	NOTHING_OPEN,
 	RESIZE_ANSWER_MS,
 	toDip,
+	USER_FOCUS_MS,
 } from './views';
 
 const LOCATED = { x: 110, y: 220, rect: { x: 100, y: 1_200, width: 20, height: 40 } };
@@ -1469,6 +1470,47 @@ describe('BrowserViews', () => {
 					'The page did not answer within 10s. It may wait on a dialog or a busy script. Call browser_screenshot to see what it shows.',
 			});
 			await expect(next).resolves.toMatchObject({ url: 'https://example.com/next' });
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('lets a page keep focus only after the user pressed into it while it shows, never after the page or the agent took it', async () => {
+		const { browser, viewAt, window } = setup();
+		browser.show(TAB, { x: 0, y: 0, width: 300, height: 200 });
+		await browser.open(TAB, 'https://example.com');
+		const { contents, events } = viewAt(0);
+		const pageTakesFocus = async (): Promise<number> => {
+			contents.focused = true;
+			events.focused();
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			return window().focusCount;
+		};
+		expect(await pageTakesFocus()).toBe(1);
+
+		const answer = contents.devtoolsAnswer;
+		contents.devtoolsAnswer = (method, params) => {
+			if (method.startsWith('Input.')) events.pressed();
+			return answer(method, params);
+		};
+		await browser.click(TAB, 'button');
+		expect(await pageTakesFocus()).toBe(2);
+
+		vi.useFakeTimers({ toFake: ['Date'] });
+		try {
+			contents.focused = false;
+			events.pressed();
+			expect(contents.focused).toBe(true);
+			expect(await pageTakesFocus()).toBe(2);
+			vi.setSystemTime(Date.now() + USER_FOCUS_MS + 1);
+			expect(await pageTakesFocus()).toBe(2);
+
+			events.blurred();
+			expect(await pageTakesFocus()).toBe(3);
+
+			events.pressed();
+			browser.hide(TAB);
+			expect(await pageTakesFocus()).toBe(4);
 		} finally {
 			vi.useRealTimers();
 		}

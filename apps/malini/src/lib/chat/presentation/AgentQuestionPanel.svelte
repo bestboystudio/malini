@@ -3,6 +3,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import { fly } from 'svelte/transition';
 	import { motionOff } from '$hyper-ui/motion/motion-off';
+	import { focusFromUser } from '$hyper-ui/overlay';
 	import { Button } from '$hyper-ui/components/button';
 	import { ComposerShell } from '$hyper-ui/components/composer-shell';
 	import { ScrollableDiv } from '$hyper-ui/components/scrollable-div';
@@ -119,7 +120,7 @@
 
 	async function focusPrimary(): Promise<void> {
 		await tick();
-		primary?.focus();
+		focusFromUser(primary);
 	}
 
 	function optionButtons(): HTMLElement[] {

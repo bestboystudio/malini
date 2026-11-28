@@ -69,7 +69,7 @@
 	import { IconButton } from '$hyper-ui/components/icon-button';
 	import { TextInput } from '$hyper-ui/components/text-input';
 	import { avoidedByToasts } from '$hyper-ui/components/toast';
-	import { setOverlayFocusReturn } from '$hyper-ui/overlay';
+	import { focusFromUser, setOverlayFocusReturn } from '$hyper-ui/overlay';
 	import { EnterShortcut } from '$hyper-ui/components/enter-shortcut';
 	import { Tooltip } from '$hyper-ui/components/tooltip';
 	import { BusyIcon, Icon } from '$hyper-ui/icons';
@@ -95,6 +95,8 @@
 		isRunning: boolean;
 		forceFreshSession?: boolean;
 		disabled?: boolean;
+		readOnly?: boolean;
+		sendHeld?: boolean;
 		backendSelectionDisabled?: boolean;
 		transcriptReferences?: AgentTranscriptReference[];
 		elementReferences?: AgentElementReference[];
@@ -112,6 +114,8 @@
 		isRunning,
 		forceFreshSession = false,
 		disabled = false,
+		readOnly = false,
+		sendHeld = false,
 		backendSelectionDisabled = disabled,
 		oncancel,
 		onbackendchange,
@@ -151,13 +155,13 @@
 	});
 
 	export function typeKey(event: KeyboardEvent): void {
-		if (disabled || !promptEditor) return;
+		if (disabled || readOnly || !promptEditor) return;
 		promptEditor.focusNow({ atEnd: true });
 		onKeydown(event);
 	}
 
 	export function paste(event: ClipboardEvent): void {
-		if (disabled || !promptEditor) return;
+		if (disabled || readOnly || !promptEditor) return;
 		promptEditor.focusNow({ atEnd: true });
 		promptEditor.paste(event);
 	}
@@ -207,6 +211,7 @@
 	const canSend = $derived(
 		prompt.trim() !== '' &&
 			!disabled &&
+			!sendHeld &&
 			!todoContextResolving &&
 			!attachmentsStaging &&
 			stagingSecretPastes.length === 0,
@@ -543,7 +548,7 @@
 		contextQuery = '';
 		contextSelectionIndex = 0;
 		await tick();
-		contextSearchEl?.focus();
+		focusFromUser(contextSearchEl);
 		loadWorkstreamFilesCommand(workstreamId);
 	}
 
@@ -841,7 +846,20 @@
 		steer: boolean;
 	}>;
 
+	let heldSend: Readonly<{ scope: string; steer: boolean }> | null = $state(null);
+
+	$effect(() => {
+		const held = heldSend;
+		if (!held || sendHeld) return;
+		heldSend = null;
+		if (held.scope === draftScope) untrack(() => submit(held.steer));
+	});
+
 	function submit(steer = false): void {
+		if (sendHeld && !disabled && prompt.trim() !== '') {
+			heldSend = { scope: draftScope, steer };
+			return;
+		}
 		if (!canSend) {
 			return;
 		}
@@ -1243,7 +1261,7 @@
 				chips={composerChips}
 				placeholder="Ask Malini to make a change…"
 				placeholderHidden={outgoingPrompts > 0}
-				disabled={disabled || todoContextResolving}
+				disabled={disabled || readOnly}
 				resolvePreview={resolveChipPreview}
 				{chipOpener}
 				onvaluechange={onPromptValueChange}
@@ -1318,7 +1336,7 @@
 						type={stopsRun ? 'button' : 'submit'}
 						disabled={stopsRun ? disabled : !canSend}
 						class={['active:scale-95', stopsRun && 'bg-surface-50 hover:bg-error/10']}
-						ariaBusy={submitting}
+						ariaBusy={submitting || heldSend !== null}
 						ariaLabel={submitTitle}
 						{...queuesOnSend ? { ariaKeyshortcuts: 'Enter Meta+Enter' } : {}}
 						data-testid="chat-composer-submit"
@@ -1360,7 +1378,7 @@
 					{envelopes}
 					{sessionId}
 					{workstreamId}
-					{disabled}
+					disabled={disabled || sendHeld}
 					provider={selection.provider}
 				/>
 			</div>

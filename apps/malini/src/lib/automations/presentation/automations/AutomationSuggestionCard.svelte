@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import { tick } from 'svelte';
 	import type { AutomationRunMode, AutomationSuggestionRecord } from '$contract/automations';
 	import { Button } from '$hyper-ui/components/button';
@@ -58,7 +59,7 @@
 		mode = 'ask';
 		editing = true;
 		await tick();
-		nameInput?.focus();
+		focusFromUser(nameInput);
 	}
 
 	function save(): void {

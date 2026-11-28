@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import { untrack } from 'svelte';
 	import {
 		SCHEDULE_CADENCES,
@@ -93,7 +94,7 @@
 	);
 
 	$effect(() => {
-		searchEl?.focus();
+		focusFromUser(searchEl);
 	});
 
 	function onKeydown(event: KeyboardEvent): void {

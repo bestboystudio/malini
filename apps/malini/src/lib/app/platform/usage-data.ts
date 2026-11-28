@@ -499,6 +499,13 @@ export function startUsageData(context: MainContext, deps: UsageDataDeps = {}): 
 			case 'prompt_sent':
 				sendJourney('first_prompt_sent', { waits: value });
 				if (value !== 'none') count('prompt_held', { waits: value, phase: phase() });
+				return;
+			case 'composer_focus_lost':
+				report('composer focus lost', `composer focus lost: ${value}`, {
+					name: 'ComposerFocusLost',
+					code: value,
+					kind: value,
+				});
 		}
 	};
 

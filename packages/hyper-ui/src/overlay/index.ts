@@ -1,5 +1,8 @@
 export {
+	claimFocus,
 	createRovingFocus,
+	focusFromUser,
+	focusIsUnclaimed,
 	getOverlayFocusReturn,
 	isReturningFocus,
 	returnFocus,

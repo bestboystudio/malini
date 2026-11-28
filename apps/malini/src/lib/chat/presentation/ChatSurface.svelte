@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount, tick, type Snippet } from 'svelte';
+	import { onDestroy, onMount, tick, untrack, type Snippet } from 'svelte';
 	import { quartOut } from 'svelte/easing';
 	import { fly, slide, type SlideParams } from 'svelte/transition';
 	import { motionOff } from '$hyper-ui/motion/motion-off';
@@ -52,6 +52,7 @@
 	import { sessionChangesQuery } from '$lib/chat/application/queries/session-changes.query.svelte';
 	import { sessionEnvelopesQuery } from '$lib/chat/application/queries/session-envelopes.query.svelte';
 	import { waitingElsewhereQuery } from '$lib/chat/application/queries/waiting-elsewhere.query.svelte';
+	import type { AgentQuestionRequest } from '$lib/chat/domain/agent-interaction';
 	import { trayWork } from '$lib/chat/domain/background-work';
 	import { askingAutomations, isUncheckedApproval } from '$lib/chat/domain/requests-elsewhere';
 	import { agentDraftScopeKey } from '$lib/chat/domain/draft';
@@ -59,7 +60,8 @@
 	import type { AgentTranscriptReference } from '$lib/chat/domain/transcript-reference';
 	import { WorkstreamDocument } from '$lib/extensions/extensions.api';
 	import { SecretRequestCard } from '$lib/secrets/secrets.api';
-	import { focusIsUnclaimed, overlayIsOpen } from '$shared/shell/unclaimed-focus';
+	import { guardComposerFocus, type ComposerFocusOwner } from '$shared/shell/composer-focus-guard';
+	import { claimFocus, focusIsUnclaimed, overlayIsOpen } from '$shared/shell/unclaimed-focus';
 	import { workstreamTabs } from '$shared/shell/workstream-tabs.store.svelte';
 	import { loadModelDefaultsCommand } from '$shared/providers/providers.api';
 	import type { AgentSessionChangedFile } from '$shared/repositories/repositories.api';
@@ -229,13 +231,23 @@
 	const stage = $derived(
 		chatStage({ freshChat, presentedSessionId, bootError, presentationPending }),
 	);
-	const asking = $derived(
+	let questionsLater = $state<ReadonlySet<string>>(new Set());
+	let answerLaterKeys = $state<ReadonlySet<string>>(new Set());
+	const questionsAside = $derived(
+		pendingQuestions.length > 0 &&
+			pendingQuestions.every((request) => questionsLater.has(request.questionId)),
+	);
+	const questionsShown = $derived(
 		stage === 'transcript' &&
 			!presentationPending &&
 			presentedSessionId === sessionId &&
 			pendingQuestions.length > 0,
 	);
-	let answerLaterKeys = $state<ReadonlySet<string>>(new Set());
+	const asking = $derived(questionsShown && !questionsAside);
+	const questionsWaiting = $derived(questionsShown && questionsAside);
+	const waitingQuestionCount = $derived(
+		pendingQuestions.reduce((count, request) => count + request.questions.length, 0),
+	);
 	const automationRequestsAside = $derived(
 		automationSteps.length > 0 && automationSteps.every((step) => answerLaterKeys.has(step.key)),
 	);
@@ -261,19 +273,52 @@
 	$effect(() => {
 		if (uncheckedSteps.length === 0) answeringUnchecked = false;
 	});
-	let composerSlot: HTMLElement | null = $state(null);
-	let wasHidden = false;
+	const seenRequests = new Set<string>();
+	let requestsSeenIn: string | null = null;
+	const composing = (): boolean => scopedDraft.text.trim() !== '';
 
-	$effect(() => {
-		const now = composerHidden;
-		if (now === wasHidden) return;
-		wasHidden = now;
-		if (!now) void returnToComposer();
+	$effect.pre(() => {
+		const questions = pendingQuestions.map(({ questionId }) => questionId);
+		const steps = automationSteps.map(({ key }) => key);
+		const arriving = (keys: readonly string[]): string[] =>
+			keys.filter((key) => !seenRequests.has(key));
+		const newQuestions = arriving(questions.map((id) => `question:${id}`));
+		const newSteps = arriving(steps);
+		const shown = `${workstreamId}::${presentedSessionId ?? 'fresh'}`;
+		const arrivedWhileShown = requestsSeenIn === shown;
+		requestsSeenIn = shown;
+		if (newQuestions.length === 0 && newSteps.length === 0) return;
+		for (const key of [...newQuestions, ...newSteps]) seenRequests.add(key);
+		untrack(() => {
+			if (!arrivedWhileShown || !composing()) return;
+			const later = newQuestions.map((key) => key.slice('question:'.length));
+			questionsLater = new Set([...questionsLater, ...later]);
+			answerLaterKeys = new Set([...answerLaterKeys, ...newSteps]);
+		});
 	});
 
-	async function returnToComposer(): Promise<void> {
+	function answerQuestions(requests: readonly AgentQuestionRequest[]): void {
+		const answering = new Set(requests.map(({ questionId }) => questionId));
+		questionsLater = new Set([...questionsLater].filter((id) => !answering.has(id)));
+	}
+
+	let composerSlot: HTMLElement | null = $state(null);
+	let wasHidden = false;
+	let wasCovered = false;
+
+	$effect(() => {
+		const hidden = composerHidden;
+		const covered = documentActive;
+		const shown = wasHidden && !hidden;
+		const uncovered = wasCovered && !covered;
+		wasHidden = hidden;
+		wasCovered = covered;
+		if ((shown || uncovered) && !hidden && !covered) void returnToComposer(shown);
+	});
+
+	async function returnToComposer(shown: boolean): Promise<void> {
 		await tick();
-		if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+		if (shown && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
 			composerSlot?.animate(
 				[
 					{ opacity: 0, transform: 'translateY(6px)' },
@@ -282,7 +327,12 @@
 				{ duration: 220, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' },
 			);
 		}
-		if (focusIsUnclaimed()) composer?.focus({ scrollIntoView: false });
+		if (overlayIsOpen()) return;
+		claimFocus(composer, { scrollIntoView: false }, shown ? focusIsUnclaimed : focusFellToBody);
+	}
+
+	function focusFellToBody(): boolean {
+		return document.activeElement === null || document.activeElement === document.body;
 	}
 
 	const showsSessionChanges = $derived(
@@ -318,6 +368,12 @@
 		typeKey(event: KeyboardEvent): void;
 		paste(event: ClipboardEvent): void;
 	} | null = $state(null);
+	const composerFocus: ComposerFocusOwner = {
+		workstreamId: () => workstreamId,
+		focus: () => composer?.focus({ scrollIntoView: false }) ?? false,
+		away: () => composerHidden || documentActive || bootError !== null,
+		composing,
+	};
 	const DRAFT_KEYS: ReadonlySet<string> = new Set([
 		'Enter',
 		'Backspace',
@@ -326,6 +382,8 @@
 		'ArrowRight',
 	]);
 	let pointerTarget: Node | null = null;
+	let keyTurn = false;
+	let focusMovedByKey = false;
 	const presentationKey = $derived(`${workstreamId}::${presentedSessionId ?? 'fresh'}`);
 	let focusedPresentationKey: string | null = null;
 	const sessionChangesLoaded = $derived(sessionChanges !== null);
@@ -353,28 +411,34 @@
 
 	async function focusComposerForPresentation(key: string): Promise<void> {
 		await tick();
-		if (presentationKey !== key || !composerMayTakeFocus()) return;
-		composer?.focus({ scrollIntoView: false });
-	}
-
-	function composerMayTakeFocus(): boolean {
-		return document.hasFocus() && focusIsUnclaimed();
+		if (presentationKey === key) claimFocus(composer, { scrollIntoView: false });
 	}
 
 	function onWindowKeydown(event: KeyboardEvent): void {
 		if (event.defaultPrevented || !composerMayClaimInput()) return;
-		if (typesCharacter(event) || (DRAFT_KEYS.has(event.key) && focusFollowsPointer())) {
+		if (typesCharacter(event) || (DRAFT_KEYS.has(event.key) && focusIsAdrift())) {
 			composer?.typeKey(event);
 		}
+	}
+
+	function onWindowKeydownCapture(event: KeyboardEvent): void {
+		if (!event.isTrusted) return;
+		keyTurn = true;
+		setTimeout(() => (keyTurn = false));
 	}
 
 	function typesCharacter(event: KeyboardEvent): boolean {
 		return !event.metaKey && !event.ctrlKey && /^\S$/u.test(event.key);
 	}
 
-	function focusFollowsPointer(): boolean {
+	function focusIsAdrift(): boolean {
 		const active = document.activeElement;
-		return active === null || active === document.body || active.contains(pointerTarget);
+		return (
+			active === null ||
+			active === document.body ||
+			active.contains(pointerTarget) ||
+			!focusMovedByKey
+		);
 	}
 
 	function onWindowPointerdown(event: PointerEvent): void {
@@ -383,6 +447,7 @@
 
 	function onWindowFocusin(event: FocusEvent): void {
 		const focused = event.target;
+		focusMovedByKey = keyTurn;
 		if (!(focused instanceof Node) || !focused.contains(pointerTarget)) pointerTarget = null;
 	}
 
@@ -401,6 +466,7 @@
 
 <svelte:window
 	onkeydown={onWindowKeydown}
+	onkeydowncapture={onWindowKeydownCapture}
 	onpaste={onWindowPaste}
 	onpointerdowncapture={onWindowPointerdown}
 	onfocusincapture={onWindowFocusin}
@@ -532,7 +598,7 @@
 							<div class="chat-stage-inset flex flex-col">
 								<AgentProcessDiedBanner />
 								<div bind:borderBoxSize={traySize}>
-									{#if notice || (showsSessionChanges && sessionChanges) || automationRequestsWaiting || uncheckedCallsWaiting || backgroundTray || queuedPrompts.length > 0 || pastedSecrets.length > 0}
+									{#if notice || (showsSessionChanges && sessionChanges) || questionsWaiting || automationRequestsWaiting || uncheckedCallsWaiting || backgroundTray || queuedPrompts.length > 0 || pastedSecrets.length > 0}
 										<div class="chat-column px-7" transition:slide={foldMotion()}>
 											<div
 												class="border-surface-50-border bg-surface-50 divide-surface-50-border divide-y-[0.5px] overflow-hidden rounded-t-xl border-x-[0.5px] border-t-[0.5px]"
@@ -550,6 +616,16 @@
 													</div>
 												{/if}
 
+												{#if questionsWaiting}
+													<div transition:slide={foldMotion()}>
+														<RequestsWaiting
+															count={waitingQuestionCount}
+															kind="questions"
+															onanswer={() => answerQuestions(pendingQuestions)}
+														/>
+													</div>
+												{/if}
+
 												{#if automationRequestsWaiting}
 													<div transition:slide={foldMotion()}>
 														<RequestsWaiting
@@ -563,7 +639,7 @@
 													<div transition:slide={foldMotion()}>
 														<RequestsWaiting
 															count={uncheckedSteps.length}
-															unchecked
+															kind="unchecked"
 															onanswer={() => (answeringUnchecked = true)}
 														/>
 													</div>
@@ -626,6 +702,7 @@
 								<SecretRequestCard sessionId={secretsSessionId} />
 								<div
 									bind:this={composerSlot}
+									{@attach guardComposerFocus(composerFocus)}
 									class={['mx-auto w-full max-w-[52rem]', composerHidden && 'hidden']}
 								>
 									<ChatComposer
@@ -638,7 +715,9 @@
 										{profile}
 										{envelopes}
 										{isRunning}
-										disabled={bootError !== null || presentationPending}
+										disabled={bootError !== null}
+										readOnly={sessionSwitching}
+										sendHeld={presentationPending}
 										backendSelectionDisabled={bootError !== null || presentationPending}
 										oncancel={cancelRunCommand}
 										onbackendchange={selectModelCommand}

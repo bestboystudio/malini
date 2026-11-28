@@ -65,6 +65,9 @@ export interface PageEvents {
 	dialog(dialog: PageDialog): void;
 	dialogsClosed(): void;
 	leaving(): boolean;
+	focused(): void;
+	blurred(): void;
+	pressed(): void;
 	gone(): void;
 }
 

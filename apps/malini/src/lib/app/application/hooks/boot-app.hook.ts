@@ -15,6 +15,7 @@ import { appearanceStore } from '$lib/app/infrastructure/stores/appearance.store
 import { streamerModeStore } from '$lib/app/infrastructure/stores/streamer-mode.store.svelte';
 import { updateStatusStore } from '$lib/app/infrastructure/stores/update-status.store.svelte';
 import { watchFramesHook } from '$lib/stats/application/hooks/watch-frames.hook';
+import { noteUserAction } from '$shared/shell/composer-focus-guard';
 
 export function bootAppHook(): () => void {
 	const stopWatchingZoom = watchNativeChromeZoom();
@@ -25,7 +26,10 @@ export function bootAppHook(): () => void {
 	syncNativeThemeCommand();
 	const stopWatchingStreaming = watchStreaming();
 	const stopWatchingUpdates = watchUpdateStatus();
-	const stopAnsweringMenu = menuCommandsService.onCommand(runMenuChoiceCommand);
+	const stopAnsweringMenu = menuCommandsService.onCommand((command) => {
+		noteUserAction();
+		runMenuChoiceCommand(command);
+	});
 	if (!windowLifecycleService.isNativeWindow()) {
 		return () => {
 			stopAnsweringMenu();

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import { onMount, tick } from 'svelte';
 	import { Checkbox } from '$hyper-ui/components/checkbox';
 	import { DropdownItem } from '$hyper-ui/components/dropdown';
@@ -163,7 +164,7 @@
 
 	async function focusInput(): Promise<void> {
 		await tick();
-		input?.focus();
+		focusFromUser(input);
 	}
 
 	async function revealSelected(): Promise<void> {

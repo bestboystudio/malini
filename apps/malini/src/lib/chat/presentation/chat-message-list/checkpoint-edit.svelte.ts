@@ -1,3 +1,4 @@
+import { focusFromUser } from '$shared/shell/unclaimed-focus';
 import { tick } from 'svelte';
 import { beginPromptEditCommand } from '$lib/chat/application/commands/begin-prompt-edit.command';
 import { editCheckpointCommand } from '$lib/chat/application/commands/edit-checkpoint.command';
@@ -88,7 +89,7 @@ export function createCheckpointEditor(input: {
 			editingCheckpointId = checkpointId;
 			await tick();
 		});
-		field?.focus();
+		focusFromUser(field);
 	}
 
 	function closeEditor(keep: readonly StagedAgentAttachment[]): void {

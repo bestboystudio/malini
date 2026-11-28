@@ -1,3 +1,4 @@
+import { focusFromUser } from '$shared/shell/unclaimed-focus';
 import { pagePart } from './demo-browser';
 import { drawnCursor, inView, Stopped, type Cursor } from './demo-cursor';
 import { TOUR_FEEDBACK, TOUR_PROMPT, TOUR_TONY_ID } from './demo-tour-data';
@@ -81,7 +82,7 @@ export async function playTour(): Promise<void> {
 		const editor = await find('[data-testid="chat-composer-input"]');
 		aim({ x: 0, y: 0, width: editor.getBoundingClientRect().right + 24, height: innerHeight });
 		await wait(500);
-		editor.focus({ preventScroll: true });
+		focusFromUser(editor, { preventScroll: true });
 		await typeInto(cursor, TOUR_PROMPT, (word) => document.execCommand('insertText', false, word));
 		await click(await find('[data-testid="chat-composer-submit"]:not([disabled])'));
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import type { WidgetDefinition } from '$contract/widgets';
 	import { Button } from '$hyper-ui/components/button';
 	import { TextInput } from '$hyper-ui/components/text-input';
@@ -24,7 +25,7 @@
 	let field = $state<HTMLInputElement | null>(null);
 
 	$effect(() => {
-		if (asking) field?.focus();
+		if (asking) focusFromUser(field);
 	});
 
 	function iconOf(name: string | null): IconName {

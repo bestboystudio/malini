@@ -6,4 +6,9 @@ export default [
 		files: ['src/**/*.{svelte,ts}'],
 		rules: { '@malini/desktop/no-motion-while-hidden': 'error' },
 	},
+	{
+		files: ['src/**/*.{svelte,ts}'],
+		ignores: ['src/**/*.test.ts'],
+		rules: { '@malini/desktop/no-unprompted-focus': 'error' },
+	},
 ];

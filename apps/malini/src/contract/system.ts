@@ -82,6 +82,17 @@ export const USAGE_STEPS = {
 		'chatgpt_model',
 		'key',
 	],
+	composer_focus_lost: [
+		'moved_to_field',
+		'moved_to_control',
+		'moved_to_dialog',
+		'moved_to_frame',
+		'dropped_inert',
+		'dropped_hidden',
+		'dropped_read_only',
+		'dropped_removed',
+		'dropped',
+	],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 export type UsageStepName = keyof typeof USAGE_STEPS;

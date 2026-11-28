@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import type { Snippet } from 'svelte';
 	import { tick } from 'svelte';
 	import { Button } from '$hyper-ui/components/button';
@@ -24,7 +25,7 @@
 	async function focusCardFromKeyboard(event: MouseEvent): Promise<void> {
 		if (event.detail !== 0) return;
 		await tick();
-		dialog?.focus({ preventScroll: true });
+		focusFromUser(dialog, { preventScroll: true });
 	}
 </script>
 

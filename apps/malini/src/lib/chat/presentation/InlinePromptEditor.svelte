@@ -8,6 +8,7 @@
 	import { secretsIn } from '$lib/chat/domain/pasted-secrets';
 	import { isPromptChipKind, type PromptChipRef } from '$lib/chat/domain/prompt-chip';
 	import { DropdownLayer } from '$hyper-ui/components/dropdown-layer';
+	import { claimFocus } from '$hyper-ui/overlay';
 	import { sensitiveMasking } from '$hyper-ui/components/sensitive';
 	import { ScrollableDiv } from '$hyper-ui/components/scrollable-div';
 	import { promptEditorExtensions } from './prompt-editor/minimal-extensions';
@@ -254,12 +255,12 @@
 	function applyValue(next: string): void {
 		if (!editor || currentMarkdown() === next) return;
 		const { from, to } = editor.state.selection;
-		const focused = editor.isFocused;
+		const keepsPlace = editor.isFocused && to !== TextSelection.atEnd(editor.state.doc).to;
 		editor.commands.setContent(markdownToPromptDoc(next).toJSON(), { emitUpdate: false });
-		if (focused) {
-			const end = editor.state.doc.content.size;
-			editor.commands.setTextSelection({ from: Math.min(from, end), to: Math.min(to, end) });
-		}
+		const end = editor.state.doc.content.size;
+		editor.commands.setTextSelection(
+			keepsPlace ? { from: Math.min(from, end), to: Math.min(to, end) } : end,
+		);
 		knownRefKeys = documentRefKeys();
 	}
 
@@ -399,6 +400,7 @@
 				chipOpener: (ref) => chipOpener?.(ref),
 			}),
 			editable: !disabled,
+			enableCoreExtensions: { tabindex: false },
 			content: markdownToPromptDoc(value).toJSON(),
 			editorProps: {
 				attributes: {
@@ -475,6 +477,7 @@
 				});
 			},
 		});
+		editor.commands.setTextSelection(editor.state.doc.content.size);
 		knownRefKeys = documentRefKeys();
 
 		editor.view.dom.addEventListener('pointerover', onPointerOver);
@@ -502,13 +505,22 @@
 		dropSettledPendingChips();
 	});
 
+	let focusedWhenLocked = false;
+
+	$effect.pre(() => {
+		if (disabled && untrack(() => editor?.isFocused)) focusedWhenLocked = true;
+	});
+
 	$effect(() => {
 		const editable = !disabled;
 		if (!editor) return;
 
+		editor.view.dom.setAttribute('tabindex', editable ? '0' : '-1');
 		editor.setEditable(editable, false);
 		editor.view.dom.setAttribute('aria-disabled', String(!editable));
-		editor.view.dom.setAttribute('tabindex', editable ? '0' : '-1');
+		if (!editable || !focusedWhenLocked) return;
+		focusedWhenLocked = false;
+		if (!editor.isFocused) claimFocus(editor.view);
 	});
 
 	$effect(() => {

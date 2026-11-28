@@ -17,6 +17,7 @@ import {
 	seedWorkstream,
 	sendPrompt,
 	openSettingsFromMenu,
+	openSettingsSection,
 	type LaunchedApp,
 } from './harness';
 import { fakeBestboy, openUrl, signInUrl, type FakeBestboy } from './fake-bestboy';
@@ -686,11 +687,8 @@ function copyRun(db: DatabaseSync, id: string, startedAt: Date): void {
 }
 
 async function openProfileSettings(page: Page): Promise<void> {
-	await page.evaluate(() => {
-		location.hash = '#/settings/profile';
-	});
 	await page.reload();
-	await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible({ timeout: 20_000 });
+	await expect(await openSettingsSection(page, 'Profile')).toBeVisible({ timeout: 20_000 });
 }
 
 function projectUploads(platform: FakeBestboy): FakeBestboy['requests'] {

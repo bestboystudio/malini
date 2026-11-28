@@ -87,6 +87,7 @@ export type RepositoryFileTabTarget = Readonly<{
 	path: string;
 	line: number | null;
 	pinned: boolean;
+	background?: boolean;
 }>;
 
 export type RepositoryFileTabRow = Readonly<
@@ -120,7 +121,10 @@ export class RepositoryFileTabs {
 		else this.#pendingLines.set(path, target.line);
 		view?.reload();
 
-		this.#api.panels.open(fileTabId(path), fileTabOptions(path, target.pinned));
+		this.#api.panels.open(fileTabId(path), {
+			...fileTabOptions(path, target.pinned),
+			...(target.background ? { background: true } : {}),
+		});
 	}
 
 	async dispose(): Promise<void> {

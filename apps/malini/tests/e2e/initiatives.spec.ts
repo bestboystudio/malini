@@ -415,7 +415,8 @@ test('in the Plan widget, Enter names the next outcome, the circle ticks it, and
 			.getByRole('region', { name: 'Widgets' })
 			.getByRole('article', { name: /^Plan, /u });
 		const field = plan.getByRole('textbox', { name: 'Name an outcome with no date' });
-		await field.fill(OUTCOME, { timeout: 20_000 });
+		await field.click({ timeout: 20_000 });
+		await page.keyboard.type(OUTCOME);
 		await page.keyboard.press('Enter');
 		await expect(field).toBeFocused();
 		await page.keyboard.type(SECOND);

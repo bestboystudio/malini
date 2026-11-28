@@ -93,6 +93,11 @@ export default [
 		},
 	},
 	{
+		files: PRODUCT_SOURCE,
+		ignores: [...NON_PRODUCT_SOURCE, 'src/lib/**/platform/**', 'src/lib/**/*.platform.ts'],
+		rules: { '@malini/desktop/no-unprompted-focus': 'error' },
+	},
+	{
 		/**
 		 * The rules are text scans over Svelte and CSS; they only need a Program
 		 * node to anchor report locations.

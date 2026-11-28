@@ -1,3 +1,4 @@
+import { noteUserAction } from '$shared/shell/composer-focus-guard';
 import { smooth } from './demo-attract';
 
 export class Stopped extends Error {}
@@ -109,6 +110,7 @@ export function drawnCursor(start: Point): Cursor | null {
 		element.dataset['pressed'] = '';
 		await wait(130);
 		delete element.dataset['pressed'];
+		noteUserAction();
 	};
 	const click = async (target: HTMLElement, dx = 0.5): Promise<void> => {
 		await moveTo(target, dx);

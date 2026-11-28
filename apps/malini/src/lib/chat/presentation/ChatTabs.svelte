@@ -80,6 +80,7 @@
 </script>
 
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import { afterNavigate, goto } from '$shared/router/navigation';
 	import { page } from '$shared/router/state';
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
@@ -414,11 +415,12 @@
 	async function focusSessionTab(sessionId: SessionId | null): Promise<void> {
 		await tick();
 		if (!sessionId) return;
-		document
-			.querySelector<HTMLElement>(
+		focusFromUser(
+			document.querySelector<HTMLElement>(
 				`[data-testid="chat-agent-tab"][data-session-id="${CSS.escape(sessionId)}"]`,
-			)
-			?.focus({ preventScroll: true });
+			),
+			{ preventScroll: true },
+		);
 	}
 
 	function closeCurrentTab(): void {

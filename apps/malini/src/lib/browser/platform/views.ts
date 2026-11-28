@@ -28,6 +28,7 @@ import {
 } from '../browser.platform';
 import {
 	ACTION_SETTLE_MS,
+	agentIsPressing,
 	captureFrame,
 	captureRegion,
 	captureVisible,
@@ -77,6 +78,7 @@ export const RESIZE_ANSWER_MS = 5_000;
 export const MAX_CONSOLE_LINES = 200;
 export const MAX_CONSOLE_TEXT = 1_000;
 export const NO_DIALOG = 'No dialog is open on the page.';
+export const USER_FOCUS_MS = 300;
 const PICK_WITHOUT_PAGE = 'Open a page before picking an element.';
 
 export interface BrowserViewsDeps<W extends HostWindow> {
@@ -124,6 +126,8 @@ interface Entry<W extends HostWindow> {
 	consoleDropped: number;
 	dialog: PageDialog | null;
 	interrupted: Promise<unknown> | null;
+	pressedAt: number;
+	userFocused: boolean;
 }
 
 export class BrowserViews<W extends HostWindow> implements BrowserPlatform {
@@ -444,7 +448,10 @@ export class BrowserViews<W extends HostWindow> implements BrowserPlatform {
 						`The page stayed ${size.width} by ${size.height}px instead of ${asked.width} by ${asked.height}px. Call browser_resize again.`,
 					);
 				} finally {
-					if (!entry.shown) entry.view.setVisible(false);
+					if (!entry.shown) {
+						entry.view.setVisible(false);
+						this.returnFocus(entry);
+					}
 				}
 			}
 			if (!this.deps.onScreen(window)) {
@@ -582,6 +589,7 @@ export class BrowserViews<W extends HostWindow> implements BrowserPlatform {
 		} finally {
 			if (entry.alive && entry.window && !entry.window.isDestroyed()) {
 				entry.view.placeIn(entry.window, entry.shown ? 'front' : 'back');
+				if (!entry.shown) this.returnFocus(entry);
 			}
 		}
 	}
@@ -688,6 +696,17 @@ export class BrowserViews<W extends HostWindow> implements BrowserPlatform {
 						entry.dialog = null;
 					},
 					leaving: () => this.acting.has(tabKey(entry.tab)),
+					focused: () => setTimeout(() => this.keepFocusFromUser(entry), 0),
+					blurred: () => {
+						if (entry.window?.isFocused()) entry.userFocused = false;
+					},
+					pressed: () => {
+						if (agentIsPressing(entry.view.contents)) return;
+						entry.pressedAt = Date.now();
+						if (entry.shown && entry.window?.isFocused() && !entry.view.contents.isFocused()) {
+							entry.view.contents.focus();
+						}
+					},
 					gone: () => {
 						entry.alive = false;
 						entry.pick?.controller.abort();
@@ -709,6 +728,8 @@ export class BrowserViews<W extends HostWindow> implements BrowserPlatform {
 			consoleDropped: 0,
 			dialog: null,
 			interrupted: null,
+			pressedAt: Number.NEGATIVE_INFINITY,
+			userFocused: false,
 		};
 		entry.view.setBounds(entry.bounds);
 		entry.view.setBorderRadius(CORNER_RADIUS);
@@ -750,6 +771,13 @@ export class BrowserViews<W extends HostWindow> implements BrowserPlatform {
 		const state = stateOf(entry);
 		if (state.url.length > 0) entry.lastUrl = state.url;
 		this.deps.stateChanged(state);
+	}
+
+	private keepFocusFromUser(entry: Entry<W>): void {
+		entry.userFocused =
+			entry.pick !== null ||
+			(entry.shown && (entry.userFocused || Date.now() - entry.pressedAt <= USER_FOCUS_MS));
+		if (!entry.userFocused) this.returnFocus(entry);
 	}
 
 	private returnFocus(entry: Entry<W>): void {

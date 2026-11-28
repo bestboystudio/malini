@@ -146,9 +146,9 @@ The agent reads the name, and its commands get the value, as with a secret you s
 Some files only you should write.
 The agent never reads or writes those, so it opens the file for you instead.
 
-| Tool         | What it does                                                                                  |
-| ------------ | --------------------------------------------------------------------------------------------- |
-| `files_open` | Opens a file in a tab beside the chat, where you edit it, at the line the agent names if any. |
+| Tool         | What it does                                                                                                                                         |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `files_open` | Opens a file in a tab beside the chat, where you edit it, at the line the agent names if any; while you type a draft, the tab opens behind the chat. |
 
 - The path is absolute, under `~/`, or relative to the worktree, and the agent says in its report what goes in the file.
 - The tab opens kept, not as a preview, so the next file you open never replaces it.

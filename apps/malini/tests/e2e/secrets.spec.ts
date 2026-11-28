@@ -12,6 +12,7 @@ import {
 	invoke,
 	launchMalini,
 	listEvents,
+	openSettingsSection,
 	openWorkstream,
 	seedWorkstream,
 	sendPrompt,
@@ -52,10 +53,8 @@ async function pasteInto(page: Page, selector: string, text: string): Promise<vo
 }
 
 async function openSecretsSettings(page: Page): Promise<void> {
-	await page.evaluate(() => {
-		location.hash = '#/settings/secrets';
-	});
 	await page.reload();
+	await openSettingsSection(page, 'Secrets');
 	await expect(page.getByRole('heading', { name: 'Secrets', level: 2 })).toBeVisible({
 		timeout: 20_000,
 	});
@@ -87,7 +86,7 @@ test('an agent asks for secrets on a card in the chat, the user saves one, and o
 		await expect(card).toBeVisible({ timeout: 20_000 });
 		const save = card.getByRole('button', { name: 'Save', exact: true });
 		await expect(save).toBeDisabled();
-		await expect(card.getByLabel('Value for STRIPE_KEY')).toBeFocused();
+		await expect(page.getByTestId('chat-composer-input')).toBeFocused();
 		await pasteInto(
 			page,
 			'[data-testid="chat-composer-input"]',
@@ -192,7 +191,8 @@ test('a card the agent already asked again over gives way to the newer ask when 
 		await expect(first).toBeHidden();
 
 		askAgainBehindTheCard(app, 'To void the test card.');
-		await second.getByLabel('Value for STRIPE_KEY').fill(STRIPE);
+		await second.getByLabel('Value for STRIPE_KEY').click();
+		await page.keyboard.type(STRIPE);
 		await second.getByRole('button', { name: 'Save', exact: true }).click();
 		await expect(page.getByRole('region', { name: 'To void the test card.' })).toBeVisible({
 			timeout: 20_000,

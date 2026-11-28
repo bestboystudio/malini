@@ -35,6 +35,30 @@ function strip(state: WorkstreamTabs): readonly string[] {
 const chatsAB = syncWorkstreamChats(NO_WORKSTREAM_TABS, ['a', 'b'], 'a');
 
 describe('the center tab strip', () => {
+	it('opens a document in the background beside the chat, keeping the chat and the preview in front', () => {
+		const previewing = open(chatsAB, 'a.ts');
+		const chat = leaveWorkstreamDocuments(previewing);
+		const opened = openWorkstreamDocument(chat, {
+			id: 'notes.md',
+			label: 'notes.md',
+			icon: 'path:notes.md',
+			tooltip: 'notes.md',
+			pinned: true,
+			background: true,
+		});
+		expect(opened.activeDocumentId).toBeNull();
+		expect(strip(opened)).toEqual(['chat a', 'notes.md', '(a.ts)', 'chat b']);
+		const again = openWorkstreamDocument(previewing, {
+			id: 'b.ts',
+			label: 'b.ts',
+			icon: 'path:b.ts',
+			tooltip: 'b.ts',
+			background: true,
+		});
+		expect(again.activeDocumentId).toBe('a.ts');
+		expect(strip(again)).toEqual(['chat a', '(a.ts)', '(b.ts)', 'chat b']);
+	});
+
 	it('keeps the order chats already had the first time it sees them', () => {
 		expect(strip(chatsAB)).toEqual(['chat a', 'chat b']);
 	});

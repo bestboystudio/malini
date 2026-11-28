@@ -792,6 +792,38 @@ export async function openSettingsFromMenu(page: Page): Promise<void> {
 		.click();
 }
 
+export async function clickAway(page: Page): Promise<void> {
+	await page
+		.locator(
+			'[data-testid="chat-message-viewport"], [data-testid="chat-empty-session"], [data-testid="chat-fresh-session"]',
+		)
+		.locator('visible=true')
+		.first()
+		.click({ position: { x: 8, y: 8 } });
+}
+
+export async function tabTo(
+	page: Page,
+	target: Locator,
+	key: 'Tab' | 'Shift+Tab' = 'Tab',
+): Promise<void> {
+	for (let step = 0; step < 80; step += 1) {
+		if (await target.evaluate((element) => element.matches(':focus'))) return;
+		await page.keyboard.press(key);
+	}
+	await expect(target).toBeFocused();
+}
+
+export async function openSettingsSection(page: Page, label: string): Promise<Locator> {
+	const settings = page.getByRole('dialog', { name: 'Settings' });
+	if (!(await settings.isVisible())) await openSettingsFromMenu(page);
+	await settings
+		.getByRole('navigation', { name: 'Settings' })
+		.getByRole('link', { name: label, exact: true })
+		.click();
+	return settings;
+}
+
 export async function openAutomations(page: Page, hash = '#/automations'): Promise<void> {
 	await page.evaluate((next) => {
 		globalThis.location.hash = next;

@@ -8,6 +8,7 @@ import {
 	expectAssistantReply,
 	expectCleanConsole,
 	launchMalini,
+	openSettingsSection,
 	openWorkstream,
 	seedWorkstream,
 	sendPrompt,
@@ -292,10 +293,7 @@ test('a DeepSeek run starts with its provider environment while a Claude run sta
 		await page.keyboard.press('Escape');
 		await expect(page.getByRole('listbox', { name: 'Models' })).toBeHidden();
 
-		await page.evaluate(() => {
-			location.hash = '#/settings/providers';
-		});
-		const settings = page.getByRole('dialog', { name: 'Settings' });
+		const settings = await openSettingsSection(page, 'Providers');
 		await expect(settings).toBeVisible({ timeout: 20_000 });
 		await expect(page.getByTestId('provider-deepseek')).toHaveAttribute('data-key-saved', 'true');
 		await page.keyboard.press('Escape');
@@ -409,10 +407,7 @@ test('an OpenCode run uses the models models.dev lists and the OpenCode key', as
 		await expectAssistantReply(page);
 		await expect(page.getByTestId('session-plan-limit-alert')).toHaveCount(0);
 
-		await page.evaluate(() => {
-			location.hash = '#/settings/providers';
-		});
-		await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible({ timeout: 20_000 });
+		await expect(await openSettingsSection(page, 'Providers')).toBeVisible({ timeout: 20_000 });
 		const card = page.getByTestId('provider-opencode');
 		await expect(card).toHaveAttribute('data-key-saved', 'true');
 		await expect(card).toContainText('API key saved on this Mac.');
@@ -675,10 +670,7 @@ test('a Go key lists Go and Zen models, runs each where it is sold, and checks a
 			)
 			.toMatch(/^http:\/\/127\.0\.0\.1:\d+\/opencode$/u);
 
-		await page.evaluate(() => {
-			location.hash = '#/settings/providers';
-		});
-		const settings = page.getByRole('dialog', { name: 'Settings' });
+		const settings = await openSettingsSection(page, 'Providers');
 		await expect(settings).toBeVisible({ timeout: 20_000 });
 		const card = page.getByTestId('provider-opencode');
 		await expect(card).toHaveAttribute('data-key-saved', 'true');

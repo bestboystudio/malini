@@ -42,6 +42,7 @@ export type ExtensionPanelOpenOptions = Readonly<{
 	icon?: string;
 	tooltip?: string;
 	pinned?: boolean;
+	background?: boolean;
 }>;
 
 export type ExtensionPanelInstance = ExtensionDisposable & {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { focusFromUser } from '$shared/shell/unclaimed-focus';
 	import { GitHubUserAvatar } from '$shared/repositories/repositories.api';
 	import { tick, type Snippet } from 'svelte';
 	import { flip } from 'svelte/animate';
@@ -314,7 +315,7 @@
 		const focused = document.activeElement;
 		placeWidgetCommand(workstreamId, tile.widget.id, to);
 		await tick();
-		if (focused instanceof HTMLElement && focused.isConnected) focused.focus();
+		if (focused instanceof HTMLElement && focused.isConnected) focusFromUser(focused);
 	}
 
 	function tileGestures(tile: Tile): (node: HTMLElement) => () => void {

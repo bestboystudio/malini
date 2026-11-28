@@ -111,6 +111,11 @@ export function createElectronView(
 		if (events.leaving()) event.preventDefault();
 	});
 	answerDialogs(contents, events);
+	contents.on('focus', () => events.focused());
+	contents.on('blur', () => events.blurred());
+	contents.on('input-event', (_event, input) => {
+		if (input.type === 'mouseDown') events.pressed();
+	});
 	contents.on('render-process-gone', () => events.gone());
 	contents.on('destroyed', () => events.gone());
 	return {

@@ -8,6 +8,7 @@ import {
 	expectCleanConsole,
 	KEYCHAIN_FIXTURE,
 	launchMalini,
+	openSettingsSection,
 	openWorkstream,
 	seedWorkstream,
 	sendPrompt,
@@ -125,9 +126,7 @@ test('a Claude account added from the context card signs in through the browser 
 		await page.keyboard.press('Escape');
 		await expect(settings).toHaveCount(0);
 
-		await page.evaluate(() => {
-			location.hash = '#/settings/privacy';
-		});
+		await openSettingsSection(page, 'Privacy');
 		await page
 			.getByRole('group', { name: 'Streamer mode' })
 			.getByRole('button', { name: 'On' })
