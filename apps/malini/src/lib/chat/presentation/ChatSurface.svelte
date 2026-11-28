@@ -59,6 +59,7 @@
 	import type { AgentTranscriptReference } from '$lib/chat/domain/transcript-reference';
 	import { WorkstreamDocument } from '$lib/extensions/extensions.api';
 	import { SecretRequestCard } from '$lib/secrets/secrets.api';
+	import { guardComposerFocus } from '$shared/shell/composer-focus-guard';
 	import { focusIsUnclaimed, overlayIsOpen } from '$shared/shell/unclaimed-focus';
 	import { workstreamTabs } from '$shared/shell/workstream-tabs.store.svelte';
 	import { loadModelDefaultsCommand } from '$shared/providers/providers.api';
@@ -626,6 +627,7 @@
 								<SecretRequestCard sessionId={secretsSessionId} />
 								<div
 									bind:this={composerSlot}
+									{@attach guardComposerFocus}
 									class={['mx-auto w-full max-w-[52rem]', composerHidden && 'hidden']}
 								>
 									<ChatComposer

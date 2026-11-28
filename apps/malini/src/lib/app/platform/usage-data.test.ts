@@ -330,6 +330,23 @@ describe('usage data', () => {
 		});
 	});
 
+	it('logs each way the composer loses focus once, with no content', async () => {
+		const { step, errors, activity, tags } = harness();
+		step({ step: 'composer_focus_lost', value: 'dropped_inert' });
+		step({ step: 'composer_focus_lost', value: 'dropped_inert' });
+		step({ step: 'composer_focus_lost', value: 'moved_to_control' });
+		await settled();
+		expect(errors.map((line) => splitLine(line).headline)).toEqual([
+			'composer focus lost: dropped_inert',
+			'composer focus lost: moved_to_control',
+		]);
+		expect(tags[activity.indexOf('error')]).toEqual({
+			fingerprint: expect.stringMatching(/^[0-9a-f]{12}$/u),
+			kind: 'dropped_inert',
+			version: VERSION,
+		});
+	});
+
 	it('logs crashes and uncaught exceptions', async () => {
 		const { errors, throwUncaught, goneProcess } = harness();
 		throwUncaught(new TypeError('x is undefined in /Users/me'));
